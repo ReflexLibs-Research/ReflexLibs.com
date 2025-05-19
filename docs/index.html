@@ -67,19 +67,21 @@
   <div id="right-container" class="column"></div>
 
   <script>
-    const DotComOrAI = 'DotCom'; // Change to 'AI' to flip the layout
+    const DotComOrAI = 'DotCom'; // or 'AI' to flip left/right
+
+    const baseUrl = 'http://devriskevolutionwebservice.azurewebsites.net/reflexLibs/';
 
     const config = {
       DotCom: {
         left: {
-          api: '/reflexlibs/reflexlibs2018',
+          api: baseUrl + 'reflexlibs2018',
           url: 'https://www.reflexlibs.com',
           color: '#000',
           bgClass: 'white-bg',
           text: 'www.reflexlibs.com'
         },
         right: {
-          api: '/reflexlibs/reflexlibs2025',
+          api: baseUrl + 'reflexlibs2025',
           url: 'https://www.reflexlibs.ai',
           color: '#fff',
           bgClass: 'black-bg',
@@ -88,14 +90,14 @@
       },
       AI: {
         left: {
-          api: '/reflexlibs/reflexlibs2025',
+          api: baseUrl + 'reflexlibs2025',
           url: 'https://www.reflexlibs.ai',
           color: '#fff',
           bgClass: 'black-bg',
           text: 'www.reflexlibs.ai'
         },
         right: {
-          api: '/reflexlibs/reflexlibs2018',
+          api: baseUrl + 'reflexlibs2018',
           url: 'https://www.reflexlibs.com',
           color: '#000',
           bgClass: 'white-bg',
@@ -131,7 +133,12 @@
       container.appendChild(link);
 
       fetch(api)
-        .then(res => res.json())
+        .then(res => {
+          if (!res.ok) {
+            throw new Error(`Failed to load: ${api}`);
+          }
+          return res.json();
+        })
         .then(data => {
           data.forEach(section => {
             const div = document.createElement('div');
@@ -152,6 +159,10 @@
 
             container.appendChild(div);
           });
+        })
+        .catch(error => {
+          console.error(error);
+          container.innerHTML += `<p style="color:red">Failed to load data from: ${api}</p>`;
         });
     }
 
