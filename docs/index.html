@@ -1,8 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8" />
+    <meta name="color-scheme" content="light dark">
     <title>ReflexLibs Timeline</title>
+    <link rel="icon" href="data:;base64,iVBORw0KGgo=">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet" />
     <style>
         body {
@@ -20,13 +23,50 @@
         }
 
         .white-bg {
-            background-color: #ffffff;
-            color: #000000;
+            background: #fff;
+            color: #000;
         }
 
         .black-bg {
-            background-color: #000000;
-            color: #ffffff;
+            background: #000;
+            color: #fff;
+        }
+
+        .svg-header img {
+            max-width: 400px;
+            width: 100%;
+            height: auto;
+            display: block;
+            margin: 0 auto 1rem;
+        }
+
+        .lang-box {
+            border-radius: 16px;
+            padding: 1rem;
+            width: 480px;
+            margin: 0 auto 1rem;
+        }
+
+        .white-bg .lang-box {
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+        }
+
+        .black-bg .lang-box {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .icon-container {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: .5rem;
+        }
+
+        .icon-container img {
+            width: 48px;
+            height: 48px;
         }
 
         .section {
@@ -36,201 +76,139 @@
         .title {
             font-weight: 600;
             font-size: 1.2rem;
-            margin-bottom: 0.5rem;
+            margin-bottom: .5rem;
         }
 
         .section ul {
-            list-style: none;
-            margin: 0.5rem 0 0;
-            padding: 0;
-        }
-
-            .section ul li {
-                margin-bottom: 0.25rem;
-            }
-
-        .svg-header {
-            text-align: center;
-            margin-bottom: 1rem;
-        }
-
-            .svg-header svg {
-                max-width: 200px;
-                width: auto;
-                height: auto;
-            }
-
-        /* language-box: fixed width for consistency */
-        .lang-box {
-            border-radius: 16px;
-            padding: 1rem;
-            width: 280px;
-            margin: 0 auto 1rem;
-        }
-
-        .white-bg .lang-box {
-            background-color: #f9f9f9;
-            border: 1px solid #ddd;
-        }
-
-        .black-bg .lang-box {
-            background-color: rgba(255,255,255,0.1);
-            border: 1px solid rgba(255,255,255,0.3);
-        }
-
-        .lang-box .icon-container {
-            display: flex;
-            justify-content: center;
-            gap: 16px;
-            margin-bottom: 0.5rem;
-        }
-
-            .lang-box .icon-container img {
-                width: 48px;
-                height: 48px;
-            }
-
-        .lang-box ul {
-            list-style: disc inside;
+            padding-left: 1.2rem;
             margin: 0;
-            padding: 0;
         }
 
-            .lang-box ul li {
-                margin: 0.25rem 0;
-            }
+        .section li {
+            margin-bottom: .25rem;
+        }
     </style>
 </head>
-<body>
 
+<body>
     <div id="left-container" class="column"></div>
     <div id="right-container" class="column"></div>
 
+    <!-- SCRIPT AT BOTTOM SO #left-container/#right-container EXIST -->
     <script>
-        // Toggle layout: 'DotCom' puts .com (2018) on left, .ai (2025) on right
-        // Set to 'AI' to swap sides
         const DotComOrAI = 'DotCom'; // or 'AI'
 
         const apiBase = 'https://devriskevolutionwebservice.azurewebsites.net/reflexLibs/';
         const logoBase = apiBase + 'ReflexLibsLogo/';
         const iconBase = 'https://devriskevolutionwebservice.azurewebsites.net/Icon/Generic/Get?Category=math&SubCategory=ProgLanguage&Size=64x64&Name=';
 
-        // Configuration for each version
         const configs = {
             com: {
                 apiUrl: apiBase + 'reflexlibs2018',
                 langApi: apiBase + 'reflexlanguages2018',
                 logoUrl: logoBase + 'com',
                 icons: ['CPlusPlus', 'CSharp'],
-                link: 'https://www.reflexlibs.com'
+                link: 'https://www.reflexlibs.com',
+                bgClass: 'white-bg'
             },
             ai: {
                 apiUrl: apiBase + 'reflexlibs2025',
                 langApi: apiBase + 'reflexlanguages2025',
                 logoUrl: logoBase + 'ai',
                 icons: ['CPlusPlus', 'CSharp', 'Python', 'Rust', 'JavaScript'],
-                link: 'https://www.reflexlibs.ai'
+                link: 'https://www.reflexlibs.ai',
+                bgClass: 'black-bg'
             }
         };
 
-        // Determine mapping based on toggle
         const layoutMap = {
             DotCom: { left: configs.com, right: configs.ai },
             AI: { left: configs.ai, right: configs.com }
         };
+
         const layout = layoutMap[DotComOrAI];
 
         function renderColumn(containerId, cfg) {
-            const container = document.getElementById(containerId);
-            // Apply background theme
-            container.classList.add(cfg === configs.ai ? 'black-bg' : 'white-bg');
+            const c = document.getElementById(containerId);
+            c.className = `column ${cfg.bgClass}`;
 
-            // SVG logo
-            const header = document.createElement('div');
-            header.className = 'svg-header';
-            container.appendChild(header);
-            fetch(cfg.logoUrl)
-                .then(res => res.ok ? res.text() : Promise.reject(res.status))
-                .then(svg => {
-                    const a = document.createElement('a');
-                    a.href = cfg.link;
-                    a.target = '_blank';
-                    a.innerHTML = svg.trim();
-                    header.appendChild(a);
-                })
-                .catch(err => console.error('Logo load error', err));
+            const link = document.createElement('a');
+            link.href = cfg.link;
+            link.target = '_blank';
 
-            // Languages & bullets box
-            fetch(cfg.langApi)
-                .then(res => res.ok ? res.json() : Promise.reject(res.status))
-                .then(langData => {
-                    // Handle PascalCase or camelCase JSON
-                    const langs = Array.isArray(langData.Languages) ? langData.Languages
-                        : Array.isArray(langData.languages) ? langData.languages : [];
-                    const bullets = Array.isArray(langData.Bullets) ? langData.Bullets
-                        : Array.isArray(langData.bullets) ? langData.bullets : [];
+            const logo = document.createElement('img');
+            logo.src = cfg.logoUrl;
+            logo.alt = 'ReflexLibs Logo';
+            link.appendChild(logo);
+            c.appendChild(link);
 
-                    const box = document.createElement('div');
-                    box.className = 'lang-box';
+            const box = document.createElement('div');
+            box.className = 'lang-box';
 
-                    // Icons row
-                    const iconsDiv = document.createElement('div');
-                    iconsDiv.className = 'icon-container';
-                    langs.forEach(name => {
-                        const img = document.createElement('img');
-                        img.src = iconBase + encodeURIComponent(name);
-                        img.alt = name;
-                        iconsDiv.appendChild(img);
-                    });
-                    box.appendChild(iconsDiv);
+            const iconsDiv = document.createElement('div');
+            iconsDiv.className = 'icon-container';
 
-                    // Bullets list
-                    if (bullets.length) {
+            cfg.icons.forEach(name => {
+                const img = document.createElement('img');
+                img.src = iconBase + encodeURIComponent(name);
+                img.alt = name;
+                iconsDiv.appendChild(img);
+            });
+
+            box.appendChild(iconsDiv);
+
+            const bulletsDiv = document.createElement('div');
+            box.appendChild(bulletsDiv);
+            c.appendChild(box);
+
+            fetch(cfg.langApi, { headers: { 'Accept': 'application/json' }, cache: 'no-cache' })
+                .then(r => r.ok ? r.json() : Promise.reject(r.status))
+                .then(data => {
+                    const list = Array.isArray(data.bullets) ? data.bullets
+                        : Array.isArray(data.Bullets) ? data.Bullets
+                            : [];
+
+                    if (list.length) {
                         const ul = document.createElement('ul');
-                        bullets.forEach(text => {
+                        list.forEach(txt => {
                             const li = document.createElement('li');
-                            li.textContent = text;
+                            li.textContent = txt;
                             ul.appendChild(li);
                         });
-                        box.appendChild(ul);
+                        bulletsDiv.appendChild(ul);
                     }
-
-                    container.appendChild(box);
                 })
-                .catch(err => console.error('Lang load error', err));
+                .catch(e => console.error('Bullets error:', e));
 
-            // Timeline sections
-            fetch(cfg.apiUrl)
-                .then(res => res.ok ? res.json() : Promise.reject(res.status))
+            fetch(cfg.apiUrl, { headers: { 'Accept': 'application/json' }, cache: 'no-cache' })
+                .then(r => r.ok ? r.json() : Promise.reject(r.status))
                 .then(sections => {
-                    sections.forEach(section => {
-                        const secDiv = document.createElement('div');
-                        secDiv.className = 'section';
+                    sections.forEach(s => {
+                        const sec = document.createElement('div');
+                        sec.className = 'section';
 
-                        const title = document.createElement('div');
-                        title.className = 'title';
-                        title.textContent = `${section.sectionID}. ${section.title}`;
-                        secDiv.appendChild(title);
+                        const t = document.createElement('div');
+                        t.className = 'title';
+                        t.textContent = `${s.sectionID}. ${s.title}`;
+                        sec.appendChild(t);
 
                         const ul = document.createElement('ul');
-                        (section.items || []).forEach(item => {
+                        (s.items || []).forEach(item => {
                             const li = document.createElement('li');
                             li.textContent = item;
                             ul.appendChild(li);
                         });
-                        secDiv.appendChild(ul);
 
-                        container.appendChild(secDiv);
+                        sec.appendChild(ul);
+                        c.appendChild(sec);
                     });
                 })
-                .catch(err => console.error('Data load error', err));
+                .catch(e => console.error('Sections error:', e));
         }
 
-        window.addEventListener('DOMContentLoaded', () => {
-            renderColumn('left-container', layout.left);
-            renderColumn('right-container', layout.right);
-        });
+        renderColumn('left-container', layout.left);
+        renderColumn('right-container', layout.right);
     </script>
-
 </body>
+
 </html>
