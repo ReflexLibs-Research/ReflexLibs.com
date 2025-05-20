@@ -39,10 +39,9 @@
             margin-bottom: 0.5rem;
         }
 
-        /* remove section bullets */
         .section ul {
             list-style: none;
-            margin: 0.5rem 0 0 0;
+            margin: 0.5rem 0 0;
             padding: 0;
         }
 
@@ -56,111 +55,146 @@
         }
 
             .svg-header svg {
-                transform: scale(1);
-                max-width: 320px;
-                width: 100%;
+                max-width: 200px;
+                width: auto;
                 height: auto;
             }
 
-        .icon-container {
-            display: flex;
-            justify-content: center;
-            gap: 16px;
-        }
-
-        /* language-bullets box */
+        /* language-box: fixed width for consistency */
         .lang-box {
-            border: 1px solid currentColor;
-            border-radius: 8px;
+            border-radius: 16px;
             padding: 1rem;
-            max-width: 80%;
+            width: 280px;
             margin: 0 auto 1rem;
         }
 
-            .lang-box .icon-container {
-                margin-bottom: 0.5rem;
+        .white-bg .lang-box {
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+        }
+
+        .black-bg .lang-box {
+            background-color: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .lang-box .icon-container {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 0.5rem;
+        }
+
+            .lang-box .icon-container img {
+                width: 48px;
+                height: 48px;
             }
 
-            .lang-box ul {
-                list-style: disc inside;
-                margin: 0;
-                padding: 0;
-            }
+        .lang-box ul {
+            list-style: disc inside;
+            margin: 0;
+            padding: 0;
+        }
 
-                .lang-box ul li {
-                    margin: 0.25rem 0;
-                }
+            .lang-box ul li {
+                margin: 0.25rem 0;
+            }
     </style>
 </head>
 <body>
 
-    <div id="left-container" class="column black-bg"></div>
-    <div id="right-container" class="column white-bg"></div>
+    <div id="left-container" class="column"></div>
+    <div id="right-container" class="column"></div>
 
     <script>
+        // Toggle layout: 'DotCom' puts .com (2018) on left, .ai (2025) on right
+        // Set to 'AI' to swap sides
+        const DotComOrAI = 'DotCom'; // or 'AI'
+
         const apiBase = 'https://devriskevolutionwebservice.azurewebsites.net/reflexLibs/';
         const logoBase = apiBase + 'ReflexLibsLogo/';
         const iconBase = 'https://devriskevolutionwebservice.azurewebsites.net/Icon/Generic/Get?Category=math&SubCategory=ProgLanguage&Size=64x64&Name=';
 
+        // Configuration for each version
         const configs = {
-            left: {
-                version: 'ai',
-                apiUrl: apiBase + 'reflexlibs2025',
-                langApi: apiBase + 'reflexlanguages2025',
-                logoUrl: logoBase + 'ai',
-                icons: ['CPlusPlus', 'CSharp', 'Python', 'Rust', 'JavaScript'],
-                link: 'https://www.reflexlibs.ai'
-            },
-            right: {
-                version: 'com',
+            com: {
                 apiUrl: apiBase + 'reflexlibs2018',
                 langApi: apiBase + 'reflexlanguages2018',
                 logoUrl: logoBase + 'com',
                 icons: ['CPlusPlus', 'CSharp'],
                 link: 'https://www.reflexlibs.com'
+            },
+            ai: {
+                apiUrl: apiBase + 'reflexlibs2025',
+                langApi: apiBase + 'reflexlanguages2025',
+                logoUrl: logoBase + 'ai',
+                icons: ['CPlusPlus', 'CSharp', 'Python', 'Rust', 'JavaScript'],
+                link: 'https://www.reflexlibs.ai'
             }
         };
 
+        // Determine mapping based on toggle
+        const layoutMap = {
+            DotCom: { left: configs.com, right: configs.ai },
+            AI: { left: configs.ai, right: configs.com }
+        };
+        const layout = layoutMap[DotComOrAI];
+
         function renderColumn(containerId, cfg) {
             const container = document.getElementById(containerId);
+            // Apply background theme
+            container.classList.add(cfg === configs.ai ? 'black-bg' : 'white-bg');
 
-            // Header: logo & link
+            // SVG logo
             const header = document.createElement('div');
             header.className = 'svg-header';
+            container.appendChild(header);
             fetch(cfg.logoUrl)
                 .then(res => res.ok ? res.text() : Promise.reject(res.status))
                 .then(svg => {
                     const a = document.createElement('a');
-                    a.href = cfg.link; a.target = '_blank';
+                    a.href = cfg.link;
+                    a.target = '_blank';
                     a.innerHTML = svg.trim();
                     header.appendChild(a);
-                    container.appendChild(header);
-
-                    // Fetch languages & bullets
-                    return fetch(cfg.langApi);
                 })
+                .catch(err => console.error('Logo load error', err));
+
+            // Languages & bullets box
+            fetch(cfg.langApi)
                 .then(res => res.ok ? res.json() : Promise.reject(res.status))
                 .then(langData => {
+                    // Handle PascalCase or camelCase JSON
+                    const langs = Array.isArray(langData.Languages) ? langData.Languages
+                        : Array.isArray(langData.languages) ? langData.languages : [];
+                    const bullets = Array.isArray(langData.Bullets) ? langData.Bullets
+                        : Array.isArray(langData.bullets) ? langData.bullets : [];
+
                     const box = document.createElement('div');
                     box.className = 'lang-box';
+
                     // Icons row
-                    const icoDiv = document.createElement('div');
-                    icoDiv.className = 'icon-container';
-                    langData.Languages.forEach(name => {
+                    const iconsDiv = document.createElement('div');
+                    iconsDiv.className = 'icon-container';
+                    langs.forEach(name => {
                         const img = document.createElement('img');
                         img.src = iconBase + encodeURIComponent(name);
                         img.alt = name;
-                        img.width = 48; img.height = 48;
-                        icoDiv.appendChild(img);
+                        iconsDiv.appendChild(img);
                     });
-                    box.appendChild(icoDiv);
-                    // Bullets
-                    const ul = document.createElement('ul');
-                    langData.Bullets.forEach(b => {
-                        const li = document.createElement('li'); li.textContent = b;
-                        ul.appendChild(li);
-                    });
-                    box.appendChild(ul);
+                    box.appendChild(iconsDiv);
+
+                    // Bullets list
+                    if (bullets.length) {
+                        const ul = document.createElement('ul');
+                        bullets.forEach(text => {
+                            const li = document.createElement('li');
+                            li.textContent = text;
+                            ul.appendChild(li);
+                        });
+                        box.appendChild(ul);
+                    }
+
                     container.appendChild(box);
                 })
                 .catch(err => console.error('Lang load error', err));
@@ -168,28 +202,33 @@
             // Timeline sections
             fetch(cfg.apiUrl)
                 .then(res => res.ok ? res.json() : Promise.reject(res.status))
-                .then(data => {
-                    data.forEach(section => {
-                        const sec = document.createElement('div'); sec.className = 'section';
+                .then(sections => {
+                    sections.forEach(section => {
+                        const secDiv = document.createElement('div');
+                        secDiv.className = 'section';
+
                         const title = document.createElement('div');
                         title.className = 'title';
                         title.textContent = `${section.sectionID}. ${section.title}`;
-                        sec.appendChild(title);
+                        secDiv.appendChild(title);
+
                         const ul = document.createElement('ul');
                         (section.items || []).forEach(item => {
-                            const li = document.createElement('li'); li.textContent = item;
+                            const li = document.createElement('li');
+                            li.textContent = item;
                             ul.appendChild(li);
                         });
-                        sec.appendChild(ul);
-                        container.appendChild(sec);
+                        secDiv.appendChild(ul);
+
+                        container.appendChild(secDiv);
                     });
                 })
                 .catch(err => console.error('Data load error', err));
         }
 
         window.addEventListener('DOMContentLoaded', () => {
-            renderColumn('left-container', configs.left);
-            renderColumn('right-container', configs.right);
+            renderColumn('left-container', layout.left);
+            renderColumn('right-container', layout.right);
         });
     </script>
 
