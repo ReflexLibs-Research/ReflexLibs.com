@@ -1,161 +1,241 @@
+
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8" />
-  <meta name="color-scheme" content="light dark">
-  <title>ReflexLibs Timeline</title>
-  <link rel="icon" href="data:;base64,iVBORw0KGgo=">
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet" />
-  <style>
-    body { margin: 0; display: flex; font-family: 'Poppins', sans-serif; height: 100vh; }
-    .column { width: 50%; overflow-y: auto; padding: 1rem 2rem; box-sizing: border-box; }
-    .column ul { list-style: none; margin: 0; padding-left: 0; }
-    .white-bg { background: #fff; color: #000; }
-    .black-bg { background: #000; color: #fff; }
-    .svg-header img { max-width: 400px; width: 100%; height: auto; display: block; margin: 0 auto 1rem; }
-    .lang-box { border-radius: 16px; padding: 1rem; width: 480px; margin: 0 auto 1rem; }
-    .white-bg .lang-box { background: #f9f9f9; border: 1px solid #ddd; }
-    .black-bg .lang-box { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); }
-    .white-bg .lang-box ul { list-style-type: disc; list-style-position: inside; background: #f0f0f0; border: 1px solid #ccc; border-radius: 8px; padding: 0.75rem 1rem; margin: 0 0 1rem; }
-    .black-bg .lang-box ul { list-style-type: disc; list-style-position: inside; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); border-radius: 8px; padding: 0.75rem 1rem; margin: 0 0 1rem; }
-    .lang-box li { margin-bottom: 0.5rem; }
-    .icon-container { display: flex; justify-content: center; gap: 16px; margin-bottom: 0.5rem; }
-    .icon-container img { width: 48px; height: 48px; }
-    .section { margin-bottom: 2rem; }
-    .title { font-weight: 600; font-size: 1.2rem; margin-bottom: 0.5rem; }
-    .column .section ul { list-style: none !important; margin: 0; padding-left: 0; }
-    .column .section li { margin-bottom: 0.25rem; }
-  </style>
+    <meta charset="UTF-8" />
+    <meta name="color-scheme" content="light dark">
+    <title>ReflexLibs Timeline</title>
+    <link rel="icon" href="data:;base64,iVBORw0KGgo=">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet" />
+<style>
+  /* basic page layout */
+  body {
+    margin: 0;
+    display: flex;
+    font-family: 'Poppins', sans-serif;
+    height: 100vh;
+  }
+  .column {
+    width: 50%;
+    overflow-y: auto;
+    padding: 1rem 2rem;
+    box-sizing: border-box;
+  }
+
+  /* 1) remove markers from all lists by default */
+  .column ul {
+    list-style: none;
+    margin: 0;
+    padding-left: 0;
+  }
+
+  /* background variants */
+  .white-bg { background: #fff; color: #000; }
+  .black-bg { background: #000; color: #fff; }
+
+  /* svg header sizing */
+  .svg-header img {
+    max-width: 400px;
+    width: 100%;
+    height: auto;
+    display: block;
+    margin: 0 auto 1rem;
+  }
+
+  /* language box wrapper */
+  .lang-box {
+    border-radius: 16px;
+    padding: 1rem;
+    width: 480px;
+    margin: 0 auto 1rem;
+  }
+  .white-bg .lang-box {
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+  }
+  .black-bg .lang-box {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.2);
+  }
+
+  /* 2) boxed bullets – light theme */
+  .white-bg .lang-box ul {
+    list-style-type: disc;
+    list-style-position: inside;
+    background: #f0f0f0;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    margin: 0 0 1rem;
+  }
+  /* 2b) boxed bullets – dark theme */
+  .black-bg .lang-box ul {
+    list-style-type: disc;
+    list-style-position: inside;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    margin: 0 0 1rem;
+  }
+  .lang-box li {
+    margin-bottom: 0.5rem;
+  }
+
+  /* icon row */
+  .icon-container {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 0.5rem;
+  }
+  .icon-container img {
+    width: 48px;
+    height: 48px;
+  }
+
+  /* timeline sections */
+  .section {
+    margin-bottom: 2rem;
+  }
+  .title {
+    font-weight: 600;
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+  }
+  /* 3) ensure no bullets in sections */
+  .column .section ul {
+    list-style: none !important;
+    margin: 0;
+    padding-left: 0;
+  }
+  .column .section li {
+    margin-bottom: 0.25rem;
+  }
+</style>
+
 </head>
+
 <body>
-  <div id="left-container" class="column"></div>
-  <div id="right-container" class="column"></div>
+    <div id="left-container" class="column"></div>
+    <div id="right-container" class="column"></div>
 
-  <script>
-    // Utility: try remote then local fallback
-    async function fetchWithFallback(remoteUrl, localPath) {
-      try {
-        const res = await fetch(remoteUrl, { cache: 'no-cache' });
-        if (!res.ok) throw new Error(res.status);
-        return await res.json();
-      } catch (_) {
-        const res = await fetch(localPath);
-        if (!res.ok) throw new Error('Local data missing: ' + localPath);
-        return await res.json();
-      }
-    }
+    <!-- SCRIPT AT BOTTOM SO #left-container/#right-container EXIST -->
+    <script>
+        const DotComOrAI = 'AI'; // or 'AI'
 
-    const configs = {
-      com: {
-        apiUrl: 'https://riskevolutioninflationservice.azurewebsites.net/reflexLibs/reflexlibs2018',
-        langApi: 'https://riskevolutioninflationservice.azurewebsites.net/reflexLibs/reflexlanguages2018',
-        fallbackSectFile: '/data/reflexlibs2018.json',
-        fallbackLangFile: '/data/reflexlanguages2018.json',
-        logoUrl: '/assets/img/ReflexLibsLogo/com.png',
-        icons: ['CPlusPlus','CSharp'],
-        link: 'https://www.reflexlibs.com',
-        bgClass: 'white-bg'
-      },
-      ai: {
-        apiUrl: 'https://riskevolutioninflationservice.azurewebsites.net/reflexLibs/reflexlibs2025',
-        langApi: 'https://riskevolutioninflationservice.azurewebsites.net/reflexLibs/reflexlanguages2025',
-        fallbackSectFile: '/data/reflexlibs2025.json',
-        fallbackLangFile: '/data/reflexlanguages2025.json',
-        logoUrl: '/assets/img/ReflexLibsLogo/ai.png',
-        icons: ['CPlusPlus','CSharp','Python','Rust','JavaScript'],
-        link: 'https://www.reflexlibs.ai',
-        bgClass: 'black-bg'
-      }
-    };
+        const apiBase = 'https://devriskevolutionwebservice.azurewebsites.net/reflexLibs/';
+        const logoBase = apiBase + 'ReflexLibsLogo/';
+        const iconBase = 'https://devriskevolutionwebservice.azurewebsites.net/Icon/Generic/Get?Category=math&SubCategory=ProgLanguage&Size=64x64&Name=';
 
-    const layoutMap = {
-      DotCom: { left: configs.com, right: configs.ai },
-      AI: { left: configs.ai, right: configs.com }
-    };
-    const DotComOrAI = 'DotCom';
-    const layout = layoutMap[DotComOrAI];
+        const configs = {
+            com: {
+                apiUrl: apiBase + 'reflexlibs2018',
+                langApi: apiBase + 'reflexlanguages2018',
+                logoUrl: logoBase + 'com',
+                icons: ['CPlusPlus', 'CSharp'],
+                link: 'https://www.reflexlibs.com',
+                bgClass: 'white-bg'
+            },
+            ai: {
+                apiUrl: apiBase + 'reflexlibs2025',
+                langApi: apiBase + 'reflexlanguages2025',
+                logoUrl: logoBase + 'ai',
+                icons: ['CPlusPlus', 'CSharp', 'Python', 'Rust', 'JavaScript'],
+                link: 'https://www.reflexlibs.ai',
+                bgClass: 'black-bg'
+            }
+        };
 
-    function renderColumn(containerId, cfg) {
-      const c = document.getElementById(containerId);
-      c.className = `column ${cfg.bgClass}`;
+        const layoutMap = {
+            DotCom: { left: configs.com, right: configs.ai },
+            AI: { left: configs.ai, right: configs.com }
+        };
 
-      const link = document.createElement('a');
-      link.href = cfg.link;
-      link.target = '_blank';
+        const layout = layoutMap[DotComOrAI];
 
-      const logo = document.createElement('img');
-      logo.src = cfg.logoUrl;
-      logo.alt = 'ReflexLibs Logo';
-      // fallback logo
-      logo.onerror = () => { logo.onerror = null; logo.src = '/assets/img/ReflexLibsLogo/fallback.png'; };
-      link.appendChild(logo);
-      c.appendChild(link);
+        function renderColumn(containerId, cfg) {
+            const c = document.getElementById(containerId);
+            c.className = `column ${cfg.bgClass}`;
 
-      const box = document.createElement('div');
-      box.className = 'lang-box';
+            const link = document.createElement('a');
+            link.href = cfg.link;
+            link.target = '_blank';
 
-      const iconsDiv = document.createElement('div');
-      iconsDiv.className = 'icon-container';
-      cfg.icons.forEach(name => {
-        const img = document.createElement('img');
-        img.src = `https://riskevolutioninflationservice.azurewebsites.net/Icon/Generic/Get?Category=math&SubCategory=ProgLanguage&Size=64x64&Name=${encodeURIComponent(name)}`;
-        img.alt = name;
-        img.onerror = () => { img.onerror = null; img.src = `/assets/img/icons/${name}.png`; };
-        iconsDiv.appendChild(img);
-      });
-      box.appendChild(iconsDiv);
+            const logo = document.createElement('img');
+            logo.src = cfg.logoUrl;
+            logo.alt = 'ReflexLibs Logo';
+            link.appendChild(logo);
+            c.appendChild(link);
 
-      const bulletsDiv = document.createElement('div');
-      box.appendChild(bulletsDiv);
-      c.appendChild(box);
+            const box = document.createElement('div');
+            box.className = 'lang-box';
 
-      // load bullets
-      fetchWithFallback(cfg.langApi, cfg.fallbackLangFile)
-        .then(data => {
-          const list = Array.isArray(data.bullets) ? data.bullets : (Array.isArray(data.Bullets) ? data.Bullets : []);
-          if (list.length) {
-            const ul = document.createElement('ul');
-            list.forEach(txt => {
-              const li = document.createElement('li');
-              li.textContent = txt;
-              ul.appendChild(li);
+            const iconsDiv = document.createElement('div');
+            iconsDiv.className = 'icon-container';
+
+            cfg.icons.forEach(name => {
+                const img = document.createElement('img');
+                img.src = iconBase + encodeURIComponent(name);
+                img.alt = name;
+                iconsDiv.appendChild(img);
             });
-            bulletsDiv.appendChild(ul);
-          }
-        })
-        .catch(e => console.error('Bullets error:', e));
 
-      // load sections
-      fetchWithFallback(cfg.apiUrl, cfg.fallbackSectFile)
-        .then(sections => {
-          sections.forEach(s => {
-            const sec = document.createElement('div');
-            sec.className = 'section';
-            const t = document.createElement('div');
-            t.className = 'title';
-            t.textContent = `${s.sectionID}. ${s.title}`;
-            sec.appendChild(t);
-            const ul = document.createElement('ul');
-            (s.items||[]).forEach(item => {
-              const li = document.createElement('li');
-              li.textContent = item;
-              ul.appendChild(li);
-            });
-            sec.appendChild(ul);
-            c.appendChild(sec);
-          });
-        })
-        .catch(e => console.error('Sections error:', e));
-    }
+            box.appendChild(iconsDiv);
 
-    renderColumn('left-container', layout.left);
-    renderColumn('right-container', layout.right);
+            const bulletsDiv = document.createElement('div');
+            box.appendChild(bulletsDiv);
+            c.appendChild(box);
 
-    // optional: register service worker for offline cache
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/service-worker.js')
-        .catch(err => console.warn('SW registration failed:', err));
-    }
-  </script>
+            fetch(cfg.langApi, { headers: { 'Accept': 'application/json' }, cache: 'no-cache' })
+                .then(r => r.ok ? r.json() : Promise.reject(r.status))
+                .then(data => {
+                    const list = Array.isArray(data.bullets) ? data.bullets
+                        : Array.isArray(data.Bullets) ? data.Bullets
+                            : [];
+
+                    if (list.length) {
+                        const ul = document.createElement('ul');
+                        list.forEach(txt => {
+                            const li = document.createElement('li');
+                            li.textContent = txt;
+                            ul.appendChild(li);
+                        });
+                        bulletsDiv.appendChild(ul);
+                    }
+                })
+                .catch(e => console.error('Bullets error:', e));
+
+            fetch(cfg.apiUrl, { headers: { 'Accept': 'application/json' }, cache: 'no-cache' })
+                .then(r => r.ok ? r.json() : Promise.reject(r.status))
+                .then(sections => {
+                    sections.forEach(s => {
+                        const sec = document.createElement('div');
+                        sec.className = 'section';
+
+                        const t = document.createElement('div');
+                        t.className = 'title';
+                        t.textContent = `${s.sectionID}. ${s.title}`;
+                        sec.appendChild(t);
+
+                        const ul = document.createElement('ul');
+                        (s.items || []).forEach(item => {
+                            const li = document.createElement('li');
+                            li.textContent = item;
+                            ul.appendChild(li);
+                        });
+
+                        sec.appendChild(ul);
+                        c.appendChild(sec);
+                    });
+                })
+                .catch(e => console.error('Sections error:', e));
+        }
+
+        renderColumn('left-container', layout.left);
+        renderColumn('right-container', layout.right);
+    </script>
 </body>
+
 </html>
