@@ -189,16 +189,17 @@
     const link = document.createElement('a');
     link.href   = cfg.link;
     link.target = '_blank';
-    const logo  = document.createElement('img');
-    logo.src    = `${logoRemoteBase}${cfg.logoKey}`;
-    logo.alt    = 'ReflexLibs Logo';
-    logo.onerror = () => {
-      logo.onerror = null;
-      console.warn(`Logo load failed, falling back locally.`);
-      logo.src = `${logoLocalBase}${cfg.logoKey}.png`;
-    };
-    link.appendChild(logo);
-    c.appendChild(link);
+	const logo = document.createElement('img');
+	// no extension—remote will serve the correct image
+	logo.src    = `${logoRemoteBase}${cfg.logoKey}`;
+	logo.alt    = 'ReflexLibs Logo';
+
+	// on error, fall back to the .svg in public/assets...
+	logo.onerror = () => {
+	  logo.onerror = null;
+	  console.warn(`Logo load failed, falling back to SVG.`);
+	  logo.src = `${logoLocalBase}${cfg.logoKey}.svg`;
+	};
 
     // Icons (remote → local .png)
     const box     = document.createElement('div'); box.className = 'lang-box';
