@@ -200,6 +200,10 @@
 	  console.warn(`Logo load failed, falling back to SVG.`);
 	  logo.src = `${logoLocalBase}${cfg.logoKey}.svg`;
 	};
+	
+	// ***** Make sure we actually insert it into the page *****
+link.appendChild(logo);
+c.appendChild(link);
 
     // Icons (remote → local .png)
     const box     = document.createElement('div'); box.className = 'lang-box';
