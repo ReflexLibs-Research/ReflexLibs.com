@@ -121,26 +121,20 @@
   const logoLocalBase  = `${base}assets/img/ReflexLibsLogo/`;
   const iconLocalBase  = `${base}assets/img/icons/`;
 
-  // Improved fetchWithFallback that reports which URL failed
   async function fetchWithFallback(remoteUrl, localUrl) {
     try {
-      const res = await fetch(remoteUrl, { cache: 'no-cache' });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return await res.json();
-    } catch (remoteErr) {
-      console.warn(`Remote fetch failed for ${remoteUrl}:`, remoteErr);
+      const r = await fetch(remoteUrl, { cache: 'no-cache' });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      return await r.json();
+    } catch (err) {
+      console.warn(`Remote failed: ${remoteUrl}`, err);
       try {
-        const fallbackRes = await fetch(localUrl);
-        if (!fallbackRes.ok) throw new Error(`HTTP ${fallbackRes.status}`);
-        return await fallbackRes.json();
-      } catch (localErr) {
-        console.error(
-          `Both remote and local fetch failed.\n` +
-          `  Remote: ${remoteUrl}\n` +
-          `  Local:  ${localUrl}\n`,
-          localErr
-        );
-        throw localErr;
+        const f = await fetch(localUrl);
+        if (!f.ok) throw new Error(`HTTP ${f.status}`);
+        return await f.json();
+      } catch (le) {
+        console.error(`Both remote/local failed. Remote: ${remoteUrl}, Local: ${localUrl}`, le);
+        throw le;
       }
     }
   }
@@ -169,61 +163,63 @@
   };
 
   const DotComOrAI = 'AI'; // or 'DotCom'
-  const layoutMap = {
-    DotCom: { left: configs.com, right: configs.ai },
-    AI:     { left: configs.ai,  right: configs.com }
-  };
-  const layout = layoutMap[DotComOrAI];
+  const layout      = { DotCom: configs.com, AI: configs.ai }[DotComOrAI];
 
   function renderColumn(containerId, cfg) {
     const c = document.getElementById(containerId);
     c.className = `column ${cfg.bgClass}`;
 
-    // 1) Logo remote→local
+    // ─── Header: Environment + placeholders for Version/Timestamp ────────────
+    const header = document.createElement('div');
+    header.style.marginBottom = '1rem';
+    header.innerHTML = `
+      <div>Environment: <strong>${DevOrProd}${isLocal ? ' (local)' : ''}</strong></div>
+      <div class="version">Version: <em>…loading…</em></div>
+      <div class="timestamp">Last updated: <em>…loading…</em></div>
+    `;
+    c.appendChild(header);
+
+    // ─── Logo (remote → local) ──────────────────────────────────────────────
     const link = document.createElement('a');
     link.href   = cfg.link;
     link.target = '_blank';
     const logo  = document.createElement('img');
-    logo.src    = `${logoRemoteBase}${cfg.logoKey}.png`;
+    logo.src    = `${logoRemoteBase}${cfg.logoKey}`;
     logo.alt    = 'ReflexLibs Logo';
     logo.onerror = () => {
       logo.onerror = null;
-      console.warn(`Logo failed: ${logoRemoteBase}${cfg.logoKey}.png, falling back to local.`);
+      console.warn(`Logo load failed, falling back locally.`);
       logo.src = `${logoLocalBase}${cfg.logoKey}.png`;
     };
     link.appendChild(logo);
     c.appendChild(link);
 
-    // container for bullets & icons
-    const box = document.createElement('div'); 
-    box.className = 'lang-box';
-    c.appendChild(box);
-
-    // 2) Icons remote→local
-    const iconsDiv = document.createElement('div');
-    iconsDiv.className = 'icon-container';
+    // ─── Icon row ────────────────────────────────────────────────────────────
+    const box     = document.createElement('div'); box.className = 'lang-box';
+    const icons   = document.createElement('div'); icons.className = 'icon-container';
     cfg.icons.forEach(name => {
       const img = document.createElement('img');
-      img.src   = `${iconRemoteBase}${encodeURIComponent(name)}`;
-      img.alt   = name;
+      img.src     = `${iconRemoteBase}${encodeURIComponent(name)}`;
+      img.alt     = name;
       img.onerror = () => {
         img.onerror = null;
-        console.warn(`Icon failed: ${iconRemoteBase}${name}, falling back to local.`);
+        console.warn(`Icon ${name} failed, falling back locally.`);
         img.src = `${iconLocalBase}${name}.png`;
       };
-      iconsDiv.appendChild(img);
+      icons.appendChild(img);
     });
-    box.appendChild(iconsDiv);
+    box.appendChild(icons);
+    c.appendChild(box);
 
-    // 3) Bullets fetch
+    // ─── Bullets fetch ──────────────────────────────────────────────────────
     fetchWithFallback(cfg.langApiRemote, cfg.langApiLocal)
       .then(data => {
-        const list = Array.isArray(data.bullets) ? data.bullets
-                   : Array.isArray(data.Bullets) ? data.Bullets
-                   : [];
-        if (list.length) {
+        const bullets = Array.isArray(data.bullets) ? data.bullets
+                      : Array.isArray(data.Bullets) ? data.Bullets
+                      : [];
+        if (bullets.length) {
           const ul = document.createElement('ul');
-          list.forEach(txt => {
+          bullets.forEach(txt => {
             const li = document.createElement('li');
             li.textContent = txt;
             ul.appendChild(li);
@@ -231,27 +227,26 @@
           box.appendChild(ul);
         }
       })
-      .catch(() => {/* already logged */});
+      .catch(() => {});
 
-    // 4) Sections fetch (and timestamp)
+    // ─── Sections fetch (inject Version & Timestamp) ─────────────────────────
     fetchWithFallback(cfg.sectionApiRemote, cfg.sectionApiLocal)
       .then(payload => {
-        // show timestamp if present
-        if (payload.timestamp) {
-          const ts = document.createElement('div');
-          ts.className = 'timestamp';
-          ts.textContent = `Last updated: ${payload.timestamp}`;
-          c.insertBefore(ts, box);
+        // Update Version & Timestamp in header
+        if (payload.version) {
+          header.querySelector('.version > em').textContent   = payload.version;
         }
-        // iterate sections array (or fallback old-style)
+        if (payload.timestamp) {
+          header.querySelector('.timestamp > em').textContent = payload.timestamp;
+        }
+
+        // Render sections
         const sections = Array.isArray(payload.sections)
           ? payload.sections
           : Array.isArray(payload) ? payload : [];
         sections.forEach(s => {
-          const sec = document.createElement('div');
-          sec.className = 'section';
-          const t = document.createElement('div');
-          t.className = 'title';
+          const sec = document.createElement('div'); sec.className = 'section';
+          const t   = document.createElement('div'); t.className = 'title';
           t.textContent = `${s.sectionID}. ${s.title}`;
           sec.appendChild(t);
 
@@ -265,13 +260,13 @@
           c.appendChild(sec);
         });
       })
-      .catch(() => {/* already logged */});
+      .catch(() => {});
   }
 
-  renderColumn('left-container',  layout.left);
-  renderColumn('right-container', layout.right);
+  // Kick off both columns
+  renderColumn('left-container',  layout);
+  renderColumn('right-container', layout === configs.com ? configs.ai : configs.com);
 </script>
-
 
 
 </body>
