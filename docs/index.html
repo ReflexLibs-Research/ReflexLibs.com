@@ -105,125 +105,150 @@
   <div id="left-container" class="column"></div>
   <div id="right-container" class="column"></div>
 
-  <script>
-    const DotComOrAI = 'AI';
+<script>
+  // ─── 1) Local vs Prod/Dev detection ────────────────────────────────────────
+  const DevOrProd = 'Prod'; // or 'Dev'
+  const isLocal = location.hostname === 'localhost' || location.protocol === 'file:';
+  const base    = isLocal ? 'public/' : '/public/';
 
-    const isLocal = location.hostname === 'localhost' || location.protocol === 'file:';
-    const base = isLocal ? 'public/' : '/public/';
-    const apiBase = `${base}data/`;
-    const logoBase = `${base}assets/img/ReflexLibsLogo/`;
-    const iconBase = `${base}assets/img/icons/`;
+  // ─── 2) Remote bases ──────────────────────────────────────────────────────
+  const domain        = DevOrProd === 'Dev'
+    ? 'https://devriskevolutionwebservice.azurewebsites.net'
+    : 'https://riskevolutioninflationservice.azurewebsites.net';
+  const apiRemoteBase = `${domain}/reflexLibs/`;
+  const logoRemoteBase= `${apiRemoteBase}ReflexLibsLogo/`;
+  const iconRemoteBase= `${domain}/Icon/Generic/Get?Category=math&SubCategory=ProgLanguage&Size=64x64&Name=`;
 
-    const configs = {
-      com: {
-        apiUrl: apiBase + 'reflexlibs2018.json',
-        langApi: apiBase + 'reflexlanguages2018.json',
-        logoUrl: logoBase + 'com',
-        icons: ['CPlusPlus', 'CSharp'],
-        link: 'https://www.reflexlibs.com',
-        bgClass: 'white-bg'
-      },
-      ai: {
-        apiUrl: apiBase + 'reflexlibs2025.json',
-        langApi: apiBase + 'reflexlanguages2025.json',
-        logoUrl: logoBase + 'ai',
-        icons: ['CPlusPlus', 'CSharp', 'Python', 'Rust', 'JavaScript'],
-        link: 'https://www.reflexlibs.ai',
-        bgClass: 'black-bg'
-      }
-    };
+  // ─── 3) Local bases ───────────────────────────────────────────────────────
+  const apiLocalBase  = `${base}data/`;
+  const logoLocalBase = `${base}assets/img/ReflexLibsLogo/`;
+  const iconLocalBase = `${base}assets/img/icons/`;
 
-    const layoutMap = {
-      DotCom: { left: configs.com, right: configs.ai },
-      AI: { left: configs.ai, right: configs.com }
-    };
-
-    const layout = layoutMap[DotComOrAI];
-
-    function renderColumn(containerId, cfg) {
-      const c = document.getElementById(containerId);
-      c.className = `column ${cfg.bgClass}`;
-
-      const link = document.createElement('a');
-      link.href = cfg.link;
-      link.target = '_blank';
-
-      const logo = document.createElement('img');
-      logo.src = `${cfg.logoUrl}.png`;
-      logo.alt = 'ReflexLibs Logo';
-      link.appendChild(logo);
-      c.appendChild(link);
-
-      const box = document.createElement('div');
-      box.className = 'lang-box';
-
-      const iconsDiv = document.createElement('div');
-      iconsDiv.className = 'icon-container';
-
-      cfg.icons.forEach(name => {
-        const img = document.createElement('img');
-        img.src = `${iconBase}${name}.png`;
-        img.alt = name;
-        img.onerror = () => {
-          img.src = `${iconBase}default.png`;
-          console.warn(`Missing icon: ${name}`);
-        };
-        iconsDiv.appendChild(img);
-      });
-
-      box.appendChild(iconsDiv);
-
-      const bulletsDiv = document.createElement('div');
-      box.appendChild(bulletsDiv);
-      c.appendChild(box);
-
-      fetch(cfg.langApi, { headers: { 'Accept': 'application/json' }, cache: 'no-cache' })
-        .then(r => r.ok ? r.json() : Promise.reject(r.status))
-        .then(data => {
-          const list = Array.isArray(data.bullets) ? data.bullets
-            : Array.isArray(data.Bullets) ? data.Bullets
-              : [];
-
-          if (list.length) {
-            const ul = document.createElement('ul');
-            list.forEach(txt => {
-              const li = document.createElement('li');
-              li.textContent = txt;
-              ul.appendChild(li);
-            });
-            bulletsDiv.appendChild(ul);
-          }
-        })
-        .catch(e => console.error('Bullets error:', e));
-
-      fetch(cfg.apiUrl, { headers: { 'Accept': 'application/json' }, cache: 'no-cache' })
-        .then(r => r.ok ? r.json() : Promise.reject(r.status))
-        .then(sections => {
-          sections.forEach(s => {
-            const sec = document.createElement('div');
-            sec.className = 'section';
-
-            const t = document.createElement('div');
-            t.className = 'title';
-            t.textContent = `${s.sectionID}. ${s.title}`;
-            sec.appendChild(t);
-
-            const ul = document.createElement('ul');
-            (s.items || []).forEach(item => {
-              const li = document.createElement('li');
-              li.textContent = item;
-              ul.appendChild(li);
-            });
-
-            sec.appendChild(ul);
-            c.appendChild(sec);
-          });
-        })
-        .catch(e => console.error('Sections error:', e));
+  // ─── 4) JSON fetch helper ─────────────────────────────────────────────────
+  async function fetchWithFallback(remoteUrl, localUrl) {
+    try {
+      const res = await fetch(remoteUrl, { cache: 'no-cache' });
+      if (!res.ok) throw new Error(res.status);
+      return await res.json();
+    } catch {
+      const res = await fetch(localUrl);
+      if (!res.ok) throw new Error(`Missing local data: ${localUrl}`);
+      return await res.json();
     }
+  }
 
-    renderColumn('left-container', layout.left);
-    renderColumn('right-container', layout.right);
-  </script>
+  // ─── 5) Your configs ─────────────────────────────────────────────────────
+  const configs = {
+    com: {
+      sectionApiRemote: `${apiRemoteBase}reflexlibs2018`,
+      sectionApiLocal:  `${apiLocalBase}reflexlibs2018.json`,
+      langApiRemote:    `${apiRemoteBase}reflexlanguages2018`,
+      langApiLocal:     `${apiLocalBase}reflexlanguages2018.json`,
+      logoKey:          'com',
+      icons:            ['CPlusPlus','CSharp'],
+      link:             'https://www.reflexlibs.com',
+      bgClass:          'white-bg'
+    },
+    ai: {
+      sectionApiRemote: `${apiRemoteBase}reflexlibs2025`,
+      sectionApiLocal:  `${apiLocalBase}reflexlibs2025.json`,
+      langApiRemote:    `${apiRemoteBase}reflexlanguages2025`,
+      langApiLocal:     `${apiLocalBase}reflexlanguages2025.json`,
+      logoKey:          'ai',
+      icons:            ['CPlusPlus','CSharp','Python','Rust','JavaScript'],
+      link:             'https://www.reflexlibs.ai',
+      bgClass:          'black-bg'
+    }
+  };
+
+  const DotComOrAI = 'AI'; // or 'DotCom'
+  const layoutMap = {
+    DotCom: { left: configs.com, right: configs.ai },
+    AI:     { left: configs.ai,  right: configs.com }
+  };
+  const layout = layoutMap[DotComOrAI];
+
+  // ─── 6) Rendering + failover ──────────────────────────────────────────────
+  function renderColumn(containerId, cfg) {
+    const c = document.getElementById(containerId);
+    c.className = `column ${cfg.bgClass}`;
+
+    // Logo (remote → local)
+    const link = document.createElement('a');
+    link.href   = cfg.link;
+    link.target = '_blank';
+    const logo  = document.createElement('img');
+    logo.src    = `${logoRemoteBase}${cfg.logoKey}.png`;
+    logo.alt    = 'ReflexLibs Logo';
+    logo.onerror = () => {
+      logo.onerror = null;
+      logo.src     = `${logoLocalBase}${cfg.logoKey}.png`;
+    };
+    link.appendChild(logo);
+    c.appendChild(link);
+
+    // Icons (remote → local)
+    const box     = document.createElement('div'); box.className = 'lang-box';
+    const iconsDiv= document.createElement('div'); iconsDiv.className = 'icon-container';
+    cfg.icons.forEach(name => {
+      const img = document.createElement('img');
+      img.src   = `${iconRemoteBase}${encodeURIComponent(name)}`;
+      img.alt   = name;
+      img.onerror = () => {
+        img.onerror = null;
+        img.src     = `${iconLocalBase}${name}.png`;
+        console.warn(`Missing icon: ${name}`);
+      };
+      iconsDiv.appendChild(img);
+    });
+    box.appendChild(iconsDiv);
+    c.appendChild(box);
+
+    // Bullets (remote → local)
+    fetchWithFallback(cfg.langApiRemote, cfg.langApiLocal)
+      .then(data => {
+        const list = Array.isArray(data.bullets) 
+          ? data.bullets 
+          : Array.isArray(data.Bullets) 
+            ? data.Bullets 
+            : [];
+        if (list.length) {
+          const ul = document.createElement('ul');
+          list.forEach(txt => {
+            const li = document.createElement('li');
+            li.textContent = txt;
+            ul.appendChild(li);
+          });
+          box.appendChild(ul);
+        }
+      })
+      .catch(e => console.error('Bullets error:', e));
+
+    // Sections (remote → local)
+    fetchWithFallback(cfg.sectionApiRemote, cfg.sectionApiLocal)
+      .then(sections => {
+        sections.forEach(s => {
+          const sec = document.createElement('div'); sec.className = 'section';
+          const t   = document.createElement('div'); t.className = 'title';
+          t.textContent = `${s.sectionID}. ${s.title}`;
+          sec.appendChild(t);
+
+          const ul = document.createElement('ul');
+          (s.items || []).forEach(item => {
+            const li = document.createElement('li');
+            li.textContent = item;
+            ul.appendChild(li);
+          });
+          sec.appendChild(ul);
+          c.appendChild(sec);
+        });
+      })
+      .catch(e => console.error('Sections error:', e));
+  }
+
+  renderColumn('left-container',  layout.left);
+  renderColumn('right-container', layout.right);
+</script>
+
 </body>
 </html>
