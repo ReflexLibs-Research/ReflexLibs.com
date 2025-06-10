@@ -106,7 +106,7 @@
   <div id="right-container" class="column"></div>
 
 <script>
-  const DevOrProd = 'Dev'; // 'Dev' or 'Prod'
+  const DevOrProd = 'Prod'; // 'Dev' or 'Prod'
   const isLocal   = location.hostname === 'localhost' || location.protocol === 'file:';
   const base      = isLocal ? 'public/' : '/public/';
 
@@ -202,8 +202,8 @@
 	};
 	
 	// ***** Make sure we actually insert it into the page *****
-link.appendChild(logo);
-c.appendChild(link);
+	link.appendChild(logo);
+	c.appendChild(link);
 
     // Icons (remote → local .png)
     const box     = document.createElement('div'); box.className = 'lang-box';
