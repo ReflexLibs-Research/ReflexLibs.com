@@ -126,16 +126,10 @@
       const r = await fetch(remoteUrl, { cache: 'no-cache' });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       return await r.json();
-    } catch (err) {
-      console.warn(`Remote failed: ${remoteUrl}`, err);
-      try {
-        const f = await fetch(localUrl);
-        if (!f.ok) throw new Error(`HTTP ${f.status}`);
-        return await f.json();
-      } catch (le) {
-        console.error(`Both remote/local failed. Remote: ${remoteUrl}, Local: ${localUrl}`, le);
-        throw le;
-      }
+    } catch {
+      const f = await fetch(localUrl);
+      if (!f.ok) throw new Error(`HTTP ${f.status}`);
+      return await f.json();
     }
   }
 
@@ -162,14 +156,11 @@
     }
   };
 
-  const DotComOrAI = 'DotCom'; // or 'AI'
-  const layout      = { DotCom: configs.com, AI: configs.ai }[DotComOrAI];
-
- function renderColumn(containerId, cfg) {
+  function renderColumn(containerId, cfg) {
     const c = document.getElementById(containerId);
     c.className = `column ${cfg.bgClass}`;
 
-    // Header with placeholders
+    // Header
     const header = document.createElement('div');
     header.style.marginBottom = '1rem';
     header.innerHTML = `
@@ -179,41 +170,31 @@
     `;
     c.appendChild(header);
 
-    // … logo, icons, bullets as before …
+    // TODO: insert logo + icon + language-list rendering here if needed
 
-    // Sections fetch (now with formatted timestamp)
     fetchWithFallback(cfg.sectionApiRemote, cfg.sectionApiLocal)
       .then(payload => {
-        // 1) Version
         if (payload.version) {
           header.querySelector('.version > em').textContent = payload.version;
         }
-
-        // 2) Timestamp → parse + format to dd-MMM-yyyy HH:mm:ss.fff UTC
         if (payload.timestamp) {
           const dt = new Date(payload.timestamp);
-          const pad = (n, z=2) => n.toString().padStart(z,'0');
-          const day   = pad(dt.getUTCDate());
-          const monthNames = ["Jan","Feb","Mar","Apr","May","Jun",
-                              "Jul","Aug","Sep","Oct","Nov","Dec"];
-          const mon   = monthNames[dt.getUTCMonth()];
-          const year  = dt.getUTCFullYear();
-          const hrs   = pad(dt.getUTCHours());
-          const mins  = pad(dt.getUTCMinutes());
-          const secs  = pad(dt.getUTCSeconds());
-          const msec  = pad(dt.getUTCMilliseconds(), 3);
-          const formatted = `${day}-${mon}-${year} ${hrs}:${mins}:${secs}.${msec} UTC`;
-
+          const pad = (n,z=2) => n.toString().padStart(z,'0');
+          const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+          const formatted = 
+            `${pad(dt.getUTCDate())}-${monthNames[dt.getUTCMonth()]}-${dt.getUTCFullYear()} ` +
+            `${pad(dt.getUTCHours())}:${pad(dt.getUTCMinutes())}:` +
+            `${pad(dt.getUTCSeconds())}.${pad(dt.getUTCMilliseconds(),3)} UTC`;
           header.querySelector('.timestamp > em').textContent = formatted;
         }
 
-        // 3) Render sections
-        const sections = Array.isArray(payload.sections)
-          ? payload.sections
-          : Array.isArray(payload) ? payload : [];
+        const sections = Array.isArray(payload.sections) ? payload.sections : [];
         sections.forEach(s => {
-          const sec = document.createElement('div'); sec.className = 'section';
-          const t   = document.createElement('div'); t.className = 'title';
+          const sec = document.createElement('div');
+          sec.className = 'section';
+
+          const t = document.createElement('div');
+          t.className = 'title';
           t.textContent = `${s.sectionID}. ${s.title}`;
           sec.appendChild(t);
 
@@ -227,10 +208,12 @@
           c.appendChild(sec);
         });
       })
-      .catch(() => {});
+      .catch(console.error);
   }
 
-  // … call renderColumn for left & right …
+  // **ACTUAL RENDER CALLS**:
+  renderColumn('left-container',  configs.com);
+  renderColumn('right-container', configs.ai);
 </script>
 
 </body>
