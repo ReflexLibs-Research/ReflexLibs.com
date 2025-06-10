@@ -1,241 +1,72 @@
+import requests
+from pathlib import Path
 
-<!DOCTYPE html>
-<html lang="en">
+# Configuration: endpoints and local paths
+JSON_ENDPOINTS = {
+    "reflexlibs2018":      "https://riskevolutioninflationservice.azurewebsites.net/reflexLibs/reflexlibs2018",
+    "reflexlanguages2018": "https://riskevolutioninflationservice.azurewebsites.net/reflexLibs/reflexlanguages2018",
+    "reflexlibs2025":      "https://riskevolutioninflationservice.azurewebsites.net/reflexLibs/reflexlibs2025",
+    "reflexlanguages2025": "https://riskevolutioninflationservice.azurewebsites.net/reflexLibs/reflexlanguages2025",
+}
 
-<head>
-    <meta charset="UTF-8" />
-    <meta name="color-scheme" content="light dark">
-    <title>ReflexLibs Timeline</title>
-    <link rel="icon" href="data:;base64,iVBORw0KGgo=">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet" />
-<style>
-  /* basic page layout */
-  body {
-    margin: 0;
-    display: flex;
-    font-family: 'Poppins', sans-serif;
-    height: 100vh;
-  }
-  .column {
-    width: 50%;
-    overflow-y: auto;
-    padding: 1rem 2rem;
-    box-sizing: border-box;
-  }
+ICON_BASE = (
+    "https://riskevolutioninflationservice.azurewebsites.net/"
+    "Icon/Generic/Get?Category=math&SubCategory=ProgLanguage&Size=64x64&Name={}"
+)
+ICON_NAMES = ["CPlusPlus", "CSharp", "Python", "Rust", "JavaScript"]
 
-  /* 1) remove markers from all lists by default */
-  .column ul {
-    list-style: none;
-    margin: 0;
-    padding-left: 0;
-  }
+LOGO_BASE  = (
+    "https://riskevolutioninflationservice.azurewebsites.net/"
+    "reflexLibs/ReflexLibsLogo/{}"
+)
+LOGO_NAMES = ["com", "ai"]
 
-  /* background variants */
-  .white-bg { background: #fff; color: #000; }
-  .black-bg { background: #000; color: #fff; }
+# Local folder structure under docs/public for GitHub Pages
+DATA_DIR  = Path("docs/public/data")
+ICON_DIR  = Path("docs/public/assets/img/icons")
+LOGO_DIR  = Path("docs/public/assets/img/ReflexLibsLogo")
 
-  /* svg header sizing */
-  .svg-header img {
-    max-width: 400px;
-    width: 100%;
-    height: auto;
-    display: block;
-    margin: 0 auto 1rem;
-  }
+# Ensure directories exist
+for d in (DATA_DIR, ICON_DIR, LOGO_DIR):
+    d.mkdir(parents=True, exist_ok=True)
 
-  /* language box wrapper */
-  .lang-box {
-    border-radius: 16px;
-    padding: 1rem;
-    width: 480px;
-    margin: 0 auto 1rem;
-  }
-  .white-bg .lang-box {
-    background: #f9f9f9;
-    border: 1px solid #ddd;
-  }
-  .black-bg .lang-box {
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.2);
-  }
+# Download JSON files
+for filename, url in JSON_ENDPOINTS.items():
+    local_path = DATA_DIR / f"{filename}.json"
+    print(f"Downloading JSON: {url} → {local_path}")
+    try:
+        resp = requests.get(url)
+        resp.raise_for_status()
+        local_path.write_text(resp.text, encoding='utf-8')
+    except Exception as e:
+        print(f"  ✗ Failed: {e}")
 
-  /* 2) boxed bullets – light theme */
-  .white-bg .lang-box ul {
-    list-style-type: disc;
-    list-style-position: inside;
-    background: #f0f0f0;
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    padding: 0.75rem 1rem;
-    margin: 0 0 1rem;
-  }
-  /* 2b) boxed bullets – dark theme */
-  .black-bg .lang-box ul {
-    list-style-type: disc;
-    list-style-position: inside;
-    background: rgba(255,255,255,0.1);
-    border: 1px solid rgba(255,255,255,0.3);
-    border-radius: 8px;
-    padding: 0.75rem 1rem;
-    margin: 0 0 1rem;
-  }
-  .lang-box li {
-    margin-bottom: 0.5rem;
-  }
+# Download icon images
+for name in ICON_NAMES:
+    url        = ICON_BASE.format(requests.utils.requote_uri(name))
+    local_path = ICON_DIR / f"{name}.png"
+    print(f"Downloading icon: {url} → {local_path}")
+    try:
+        resp = requests.get(url, stream=True)
+        resp.raise_for_status()
+        with open(local_path, 'wb') as f:
+            for chunk in resp.iter_content(8192):
+                f.write(chunk)
+    except Exception as e:
+        print(f"  ✗ Failed: {e}")
 
-  /* icon row */
-  .icon-container {
-    display: flex;
-    justify-content: center;
-    gap: 16px;
-    margin-bottom: 0.5rem;
-  }
-  .icon-container img {
-    width: 48px;
-    height: 48px;
-  }
+# Download logos
+for name in LOGO_NAMES:
+    url        = LOGO_BASE.format(requests.utils.requote_uri(name))
+    local_path = LOGO_DIR / f"{name}.png"
+    print(f"Downloading logo: {url} → {local_path}")
+    try:
+        resp = requests.get(url, stream=True)
+        resp.raise_for_status()
+        with open(local_path, 'wb') as f:
+            for chunk in resp.iter_content(8192):
+                f.write(chunk)
+    except Exception as e:
+        print(f"  ✗ Failed: {e}")
 
-  /* timeline sections */
-  .section {
-    margin-bottom: 2rem;
-  }
-  .title {
-    font-weight: 600;
-    font-size: 1.2rem;
-    margin-bottom: 0.5rem;
-  }
-  /* 3) ensure no bullets in sections */
-  .column .section ul {
-    list-style: none !important;
-    margin: 0;
-    padding-left: 0;
-  }
-  .column .section li {
-    margin-bottom: 0.25rem;
-  }
-</style>
-
-</head>
-
-<body>
-    <div id="left-container" class="column"></div>
-    <div id="right-container" class="column"></div>
-
-    <!-- SCRIPT AT BOTTOM SO #left-container/#right-container EXIST -->
-    <script>
-        const DotComOrAI = 'AI'; // or 'AI'
-
-        const apiBase = 'https://devriskevolutionwebservice.azurewebsites.net/reflexLibs/';
-        const logoBase = apiBase + 'ReflexLibsLogo/';
-        const iconBase = 'https://devriskevolutionwebservice.azurewebsites.net/Icon/Generic/Get?Category=math&SubCategory=ProgLanguage&Size=64x64&Name=';
-
-        const configs = {
-            com: {
-                apiUrl: apiBase + 'reflexlibs2018',
-                langApi: apiBase + 'reflexlanguages2018',
-                logoUrl: logoBase + 'com',
-                icons: ['CPlusPlus', 'CSharp'],
-                link: 'https://www.reflexlibs.com',
-                bgClass: 'white-bg'
-            },
-            ai: {
-                apiUrl: apiBase + 'reflexlibs2025',
-                langApi: apiBase + 'reflexlanguages2025',
-                logoUrl: logoBase + 'ai',
-                icons: ['CPlusPlus', 'CSharp', 'Python', 'Rust', 'JavaScript'],
-                link: 'https://www.reflexlibs.ai',
-                bgClass: 'black-bg'
-            }
-        };
-
-        const layoutMap = {
-            DotCom: { left: configs.com, right: configs.ai },
-            AI: { left: configs.ai, right: configs.com }
-        };
-
-        const layout = layoutMap[DotComOrAI];
-
-        function renderColumn(containerId, cfg) {
-            const c = document.getElementById(containerId);
-            c.className = `column ${cfg.bgClass}`;
-
-            const link = document.createElement('a');
-            link.href = cfg.link;
-            link.target = '_blank';
-
-            const logo = document.createElement('img');
-            logo.src = cfg.logoUrl;
-            logo.alt = 'ReflexLibs Logo';
-            link.appendChild(logo);
-            c.appendChild(link);
-
-            const box = document.createElement('div');
-            box.className = 'lang-box';
-
-            const iconsDiv = document.createElement('div');
-            iconsDiv.className = 'icon-container';
-
-            cfg.icons.forEach(name => {
-                const img = document.createElement('img');
-                img.src = iconBase + encodeURIComponent(name);
-                img.alt = name;
-                iconsDiv.appendChild(img);
-            });
-
-            box.appendChild(iconsDiv);
-
-            const bulletsDiv = document.createElement('div');
-            box.appendChild(bulletsDiv);
-            c.appendChild(box);
-
-            fetch(cfg.langApi, { headers: { 'Accept': 'application/json' }, cache: 'no-cache' })
-                .then(r => r.ok ? r.json() : Promise.reject(r.status))
-                .then(data => {
-                    const list = Array.isArray(data.bullets) ? data.bullets
-                        : Array.isArray(data.Bullets) ? data.Bullets
-                            : [];
-
-                    if (list.length) {
-                        const ul = document.createElement('ul');
-                        list.forEach(txt => {
-                            const li = document.createElement('li');
-                            li.textContent = txt;
-                            ul.appendChild(li);
-                        });
-                        bulletsDiv.appendChild(ul);
-                    }
-                })
-                .catch(e => console.error('Bullets error:', e));
-
-            fetch(cfg.apiUrl, { headers: { 'Accept': 'application/json' }, cache: 'no-cache' })
-                .then(r => r.ok ? r.json() : Promise.reject(r.status))
-                .then(sections => {
-                    sections.forEach(s => {
-                        const sec = document.createElement('div');
-                        sec.className = 'section';
-
-                        const t = document.createElement('div');
-                        t.className = 'title';
-                        t.textContent = `${s.sectionID}. ${s.title}`;
-                        sec.appendChild(t);
-
-                        const ul = document.createElement('ul');
-                        (s.items || []).forEach(item => {
-                            const li = document.createElement('li');
-                            li.textContent = item;
-                            ul.appendChild(li);
-                        });
-
-                        sec.appendChild(ul);
-                        c.appendChild(sec);
-                    });
-                })
-                .catch(e => console.error('Sections error:', e));
-        }
-
-        renderColumn('left-container', layout.left);
-        renderColumn('right-container', layout.right);
-    </script>
-</body>
-
-</html>
+print("✅ Download complete. Static assets are in docs/public/data and docs/public/assets/img/")

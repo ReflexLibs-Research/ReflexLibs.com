@@ -106,39 +106,45 @@
   <div id="right-container" class="column"></div>
 
 <script>
-  // ─── 1) Environment flags ────────────────────────────────────────────────
-  const DevOrProd  = 'Prod';    // 'Dev' or 'Prod'
-  const DotComOrAI = 'DotCom';  // 'DotCom' or 'AI'
-  const isLocal    = location.hostname === 'localhost' || location.protocol === 'file:';
-  const localBase  = isLocal ? 'public/' : '/public/';
+  const DevOrProd = 'Prod'; // or 'Dev'
+  const isLocal   = location.hostname === 'localhost' || location.protocol === 'file:';
+  const base      = isLocal ? 'public/' : '/public/';
 
-  // ─── 2) Remote vs Local URL bases ────────────────────────────────────────
-  const domain          = DevOrProd === 'Dev'
+  const domain         = DevOrProd === 'Dev'
     ? 'https://devriskevolutionwebservice.azurewebsites.net'
     : 'https://riskevolutioninflationservice.azurewebsites.net';
-  const apiRemoteBase   = `${domain}/reflexLibs/`;
-  const logoRemoteBase  = `${apiRemoteBase}ReflexLibsLogo/`;
-  const iconRemoteBase  = `${domain}/Icon/Generic/Get?Category=math&SubCategory=ProgLanguage&Size=64x64&Name=`;
+  const apiRemoteBase  = `${domain}/reflexLibs/`;
+  const logoRemoteBase = `${apiRemoteBase}ReflexLibsLogo/`;
+  const iconRemoteBase = `${domain}/Icon/Generic/Get?Category=math&SubCategory=ProgLanguage&Size=64x64&Name=`;
 
-  const apiLocalBase    = `${localBase}data/`;
-  const logoLocalBase   = `${localBase}assets/img/ReflexLibsLogo/`;
-  const iconLocalBase   = `${localBase}assets/img/icons/`;
-  const defaultIcon     = `${iconLocalBase}default.png`;
+  const apiLocalBase   = `${base}data/`;
+  const logoLocalBase  = `${base}assets/img/ReflexLibsLogo/`;
+  const iconLocalBase  = `${base}assets/img/icons/`;
 
-  // ─── 3) Helper: fetch remote JSON, fallback to local JSON ───────────────
+  // Improved fetchWithFallback that reports which URL failed
   async function fetchWithFallback(remoteUrl, localUrl) {
     try {
-      const r = await fetch(remoteUrl, { cache: 'no-cache' });
-      if (!r.ok) throw new Error(r.status);
-      return await r.json();
-    } catch {
-      const r = await fetch(localUrl);
-      if (!r.ok) throw new Error(`Missing local data: ${localUrl}`);
-      return await r.json();
+      const res = await fetch(remoteUrl, { cache: 'no-cache' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.json();
+    } catch (remoteErr) {
+      console.warn(`Remote fetch failed for ${remoteUrl}:`, remoteErr);
+      try {
+        const fallbackRes = await fetch(localUrl);
+        if (!fallbackRes.ok) throw new Error(`HTTP ${fallbackRes.status}`);
+        return await fallbackRes.json();
+      } catch (localErr) {
+        console.error(
+          `Both remote and local fetch failed.\n` +
+          `  Remote: ${remoteUrl}\n` +
+          `  Local:  ${localUrl}\n`,
+          localErr
+        );
+        throw localErr;
+      }
     }
   }
 
-  // ─── 4) Configuration for both sides ────────────────────────────────────
   const configs = {
     com: {
       sectionApiRemote: `${apiRemoteBase}reflexlibs2018`,
@@ -146,7 +152,7 @@
       langApiRemote:    `${apiRemoteBase}reflexlanguages2018`,
       langApiLocal:     `${apiLocalBase}reflexlanguages2018.json`,
       logoKey:          'com',
-      icons:            ['CPlusPlus','CSharp','Python','Rust','JavaScript'],
+      icons:            ['CPlusPlus','CSharp'],
       link:             'https://www.reflexlibs.com',
       bgClass:          'white-bg'
     },
@@ -162,18 +168,18 @@
     }
   };
 
+  const DotComOrAI = 'AI'; // or 'DotCom'
   const layoutMap = {
     DotCom: { left: configs.com, right: configs.ai },
     AI:     { left: configs.ai,  right: configs.com }
   };
   const layout = layoutMap[DotComOrAI];
 
-  // ─── 5) Render a single column ───────────────────────────────────────────
   function renderColumn(containerId, cfg) {
     const c = document.getElementById(containerId);
     c.className = `column ${cfg.bgClass}`;
 
-    // Logo (remote → local)
+    // 1) Logo remote→local
     const link = document.createElement('a');
     link.href   = cfg.link;
     link.target = '_blank';
@@ -182,29 +188,34 @@
     logo.alt    = 'ReflexLibs Logo';
     logo.onerror = () => {
       logo.onerror = null;
-      logo.src     = `${logoLocalBase}${cfg.logoKey}.png`;
+      console.warn(`Logo failed: ${logoRemoteBase}${cfg.logoKey}.png, falling back to local.`);
+      logo.src = `${logoLocalBase}${cfg.logoKey}.png`;
     };
     link.appendChild(logo);
     c.appendChild(link);
 
-    // Language icons (remote → local → default)
-    const box      = document.createElement('div'); box.className = 'lang-box';
-    const iconsDiv = document.createElement('div'); iconsDiv.className = 'icon-container';
+    // container for bullets & icons
+    const box = document.createElement('div'); 
+    box.className = 'lang-box';
+    c.appendChild(box);
+
+    // 2) Icons remote→local
+    const iconsDiv = document.createElement('div');
+    iconsDiv.className = 'icon-container';
     cfg.icons.forEach(name => {
       const img = document.createElement('img');
       img.src   = `${iconRemoteBase}${encodeURIComponent(name)}`;
       img.alt   = name;
       img.onerror = () => {
         img.onerror = null;
-        img.src     = `${iconLocalBase}${name}.png`;
-        img.onerror = () => { img.src = defaultIcon; };
+        console.warn(`Icon failed: ${iconRemoteBase}${name}, falling back to local.`);
+        img.src = `${iconLocalBase}${name}.png`;
       };
       iconsDiv.appendChild(img);
     });
     box.appendChild(iconsDiv);
-    c.appendChild(box);
 
-    // Language bullets (remote → local)
+    // 3) Bullets fetch
     fetchWithFallback(cfg.langApiRemote, cfg.langApiLocal)
       .then(data => {
         const list = Array.isArray(data.bullets) ? data.bullets
@@ -220,37 +231,47 @@
           box.appendChild(ul);
         }
       })
-      .catch(e => console.error('Bullets error:', e));
+      .catch(() => {/* already logged */});
 
-    // Timeline sections (remote → local)
+    // 4) Sections fetch (and timestamp)
     fetchWithFallback(cfg.sectionApiRemote, cfg.sectionApiLocal)
-      .then(sections => {
-        sections.forEach(s => appendSection(c, s));
+      .then(payload => {
+        // show timestamp if present
+        if (payload.timestamp) {
+          const ts = document.createElement('div');
+          ts.className = 'timestamp';
+          ts.textContent = `Last updated: ${payload.timestamp}`;
+          c.insertBefore(ts, box);
+        }
+        // iterate sections array (or fallback old-style)
+        const sections = Array.isArray(payload.sections)
+          ? payload.sections
+          : Array.isArray(payload) ? payload : [];
+        sections.forEach(s => {
+          const sec = document.createElement('div');
+          sec.className = 'section';
+          const t = document.createElement('div');
+          t.className = 'title';
+          t.textContent = `${s.sectionID}. ${s.title}`;
+          sec.appendChild(t);
+
+          const ul = document.createElement('ul');
+          (s.items || []).forEach(item => {
+            const li = document.createElement('li');
+            li.textContent = item;
+            ul.appendChild(li);
+          });
+          sec.appendChild(ul);
+          c.appendChild(sec);
+        });
       })
-      .catch(e => console.error('Sections error:', e));
+      .catch(() => {/* already logged */});
   }
 
-  // ─── 6) Helper to append a section block ────────────────────────────────
-  function appendSection(container, s) {
-    const sec = document.createElement('div'); sec.className = 'section';
-    const t   = document.createElement('div'); t.className = 'title';
-    t.textContent = `${s.sectionID}. ${s.title}`;
-    sec.appendChild(t);
-
-    const ul = document.createElement('ul');
-    (s.items || []).forEach(item => {
-      const li = document.createElement('li');
-      li.textContent = item;
-      ul.appendChild(li);
-    });
-    sec.appendChild(ul);
-    container.appendChild(sec);
-  }
-
-  // ─── 7) Kick off rendering ───────────────────────────────────────────────
   renderColumn('left-container',  layout.left);
   renderColumn('right-container', layout.right);
 </script>
+
 
 
 </body>
