@@ -106,74 +106,97 @@
   <div id="right-container" class="column"></div>
 
 <script>
-  // ─── 1) Local vs Prod/Dev detection ────────────────────────────────────────
-  const DevOrProd = 'Prod'; // or 'Dev'
-  const isLocal = location.hostname === 'localhost' || location.protocol === 'file:';
-  const base    = isLocal ? 'public/' : '/public/';
+  // ─── 1) Environment flags ────────────────────────────────────────────────
+  const DevOrProd  = 'Prod';    // 'Dev' or 'Prod'
+  const DotComOrAI = 'DotCom';  // 'DotCom' or 'AI'
+  const isLocal    = location.hostname === 'localhost' || location.protocol === 'file:';
+  const localBase  = isLocal ? 'public/' : '/public/';
 
-  // ─── 2) Remote bases ──────────────────────────────────────────────────────
+  // ─── 2) Remote vs Local URL bases ────────────────────────────────────────
   const domain        = DevOrProd === 'Dev'
     ? 'https://devriskevolutionwebservice.azurewebsites.net'
     : 'https://riskevolutioninflationservice.azurewebsites.net';
-  const apiRemoteBase = `${domain}/reflexLibs/`;
-  const logoRemoteBase= `${apiRemoteBase}ReflexLibsLogo/`;
-  const iconRemoteBase= `${domain}/Icon/Generic/Get?Category=math&SubCategory=ProgLanguage&Size=64x64&Name=`;
 
-  // ─── 3) Local bases ───────────────────────────────────────────────────────
-  const apiLocalBase  = `${base}data/`;
-  const logoLocalBase = `${base}assets/img/ReflexLibsLogo/`;
-  const iconLocalBase = `${base}assets/img/icons/`;
+  const apiRemoteBase  = `${domain}/reflexLibs/`;
+  const logoRemoteBase = `${apiRemoteBase}ReflexLibsLogo/`;
+  const iconRemoteBase = `${domain}/Icon/Generic/Get?Category=math&SubCategory=ProgLanguage&Size=64x64&Name=`;
 
-  // ─── 4) JSON fetch helper ─────────────────────────────────────────────────
+  const apiLocalBase   = `${localBase}data/`;
+  const logoLocalBase  = `${localBase}assets/img/ReflexLibsLogo/`;
+  const iconLocalBase  = `${localBase}assets/img/icons/`;
+  const defaultIcon    = `${iconLocalBase}default.png`;
+
+  // ─── 3) Helper: remote JSON → local JSON fallback ────────────────────────
   async function fetchWithFallback(remoteUrl, localUrl) {
     try {
-      const res = await fetch(remoteUrl, { cache: 'no-cache' });
-      if (!res.ok) throw new Error(res.status);
-      return await res.json();
+      const r = await fetch(remoteUrl, { cache: 'no-cache' });
+      if (!r.ok) throw new Error(r.status);
+      return await r.json();
     } catch {
-      const res = await fetch(localUrl);
-      if (!res.ok) throw new Error(`Missing local data: ${localUrl}`);
-      return await res.json();
+      const r = await fetch(localUrl);
+      if (!r.ok) throw new Error(`Missing local data: ${localUrl}`);
+      return await r.json();
     }
   }
 
-  // ─── 5) Your configs ─────────────────────────────────────────────────────
+  // ─── 4) Load version/timestamp + sections ────────────────────────────────
+  ;(async function loadVersionAndSections() {
+    const remoteMetaUrl = `${apiRemoteBase}sections`;
+    const localMetaUrl  = `${apiLocalBase}sections.json`;
+    let meta;
+    try {
+      meta = await fetchWithFallback(remoteMetaUrl, localMetaUrl);
+    } catch (e) {
+      console.error('Failed to load master sections JSON:', e);
+      return;
+    }
+
+    // 4a) Show version & timestamp under each logo
+    configs.com.version   = meta.version;
+    configs.com.timestamp = meta.timestamp;
+    configs.ai.version    = meta.version;
+    configs.ai.timestamp  = meta.timestamp;
+
+    // 4b) Attach sections payload
+    configs.com.sections = meta.sections;
+    configs.ai.sections  = meta.sections;
+
+    // 4c) Now render the two columns
+    const layoutMap = {
+      DotCom: { left: configs.com, right: configs.ai },
+      AI:     { left: configs.ai,  right: configs.com }
+    };
+    const layout = layoutMap[DotComOrAI];
+    renderColumn('left-container',  layout.left);
+    renderColumn('right-container', layout.right);
+  })();
+
+  // ─── 5) Base configs (sections filled above) ─────────────────────────────
   const configs = {
     com: {
-      sectionApiRemote: `${apiRemoteBase}reflexlibs2018`,
-      sectionApiLocal:  `${apiLocalBase}reflexlibs2018.json`,
-      langApiRemote:    `${apiRemoteBase}reflexlanguages2018`,
-      langApiLocal:     `${apiLocalBase}reflexlanguages2018.json`,
-      logoKey:          'com',
-      icons:            ['CPlusPlus','CSharp'],
-      link:             'https://www.reflexlibs.com',
-      bgClass:          'white-bg'
+      langApiRemote: `${apiRemoteBase}reflexlanguages2018`,
+      langApiLocal:  `${apiLocalBase}reflexlanguages2018.json`,
+      logoKey:       'com',
+      icons:         ['CPlusPlus','CSharp','Python','Rust','JavaScript'],
+      link:          'https://www.reflexlibs.com',
+      bgClass:       'white-bg'
     },
     ai: {
-      sectionApiRemote: `${apiRemoteBase}reflexlibs2025`,
-      sectionApiLocal:  `${apiLocalBase}reflexlibs2025.json`,
-      langApiRemote:    `${apiRemoteBase}reflexlanguages2025`,
-      langApiLocal:     `${apiLocalBase}reflexlanguages2025.json`,
-      logoKey:          'ai',
-      icons:            ['CPlusPlus','CSharp','Python','Rust','JavaScript'],
-      link:             'https://www.reflexlibs.ai',
-      bgClass:          'black-bg'
+      langApiRemote: `${apiRemoteBase}reflexlanguages2025`,
+      langApiLocal:  `${apiLocalBase}reflexlanguages2025.json`,
+      logoKey:       'ai',
+      icons:         ['CPlusPlus','CSharp','Python','Rust','JavaScript'],
+      link:          'https://www.reflexlibs.ai',
+      bgClass:       'black-bg'
     }
   };
 
-  const DotComOrAI = 'AI'; // or 'DotCom'
-  const layoutMap = {
-    DotCom: { left: configs.com, right: configs.ai },
-    AI:     { left: configs.ai,  right: configs.com }
-  };
-  const layout = layoutMap[DotComOrAI];
-
-  // ─── 6) Rendering + failover ──────────────────────────────────────────────
+  // ─── 6) Render a column ───────────────────────────────────────────────────
   function renderColumn(containerId, cfg) {
     const c = document.getElementById(containerId);
     c.className = `column ${cfg.bgClass}`;
 
-    // Logo (remote → local)
+    // Logo + link
     const link = document.createElement('a');
     link.href   = cfg.link;
     link.target = '_blank';
@@ -187,9 +210,18 @@
     link.appendChild(logo);
     c.appendChild(link);
 
-    // Icons (remote → local)
-    const box     = document.createElement('div'); box.className = 'lang-box';
-    const iconsDiv= document.createElement('div'); iconsDiv.className = 'icon-container';
+    // Version/timestamp (small text)
+    if (cfg.version && cfg.timestamp) {
+      const v = document.createElement('div');
+      v.className = 'version-text';
+      const ts = new Date(cfg.timestamp).toLocaleString();
+      v.textContent = `v${cfg.version} — ${ts}`;
+      c.appendChild(v);
+    }
+
+    // Language icons
+    const box      = document.createElement('div'); box.className = 'lang-box';
+    const iconsDiv = document.createElement('div'); iconsDiv.className = 'icon-container';
     cfg.icons.forEach(name => {
       const img = document.createElement('img');
       img.src   = `${iconRemoteBase}${encodeURIComponent(name)}`;
@@ -197,21 +229,19 @@
       img.onerror = () => {
         img.onerror = null;
         img.src     = `${iconLocalBase}${name}.png`;
-        console.warn(`Missing icon: ${name}`);
+        img.onerror = () => { img.src = defaultIcon; };
       };
       iconsDiv.appendChild(img);
     });
     box.appendChild(iconsDiv);
     c.appendChild(box);
 
-    // Bullets (remote → local)
+    // Language bullets
     fetchWithFallback(cfg.langApiRemote, cfg.langApiLocal)
       .then(data => {
-        const list = Array.isArray(data.bullets) 
-          ? data.bullets 
-          : Array.isArray(data.Bullets) 
-            ? data.Bullets 
-            : [];
+        const list = Array.isArray(data.bullets) ? data.bullets
+                   : Array.isArray(data.Bullets) ? data.Bullets
+                   : [];
         if (list.length) {
           const ul = document.createElement('ul');
           list.forEach(txt => {
@@ -224,30 +254,28 @@
       })
       .catch(e => console.error('Bullets error:', e));
 
-    // Sections (remote → local)
-    fetchWithFallback(cfg.sectionApiRemote, cfg.sectionApiLocal)
-      .then(sections => {
-        sections.forEach(s => {
-          const sec = document.createElement('div'); sec.className = 'section';
-          const t   = document.createElement('div'); t.className = 'title';
-          t.textContent = `${s.sectionID}. ${s.title}`;
-          sec.appendChild(t);
-
-          const ul = document.createElement('ul');
-          (s.items || []).forEach(item => {
-            const li = document.createElement('li');
-            li.textContent = item;
-            ul.appendChild(li);
-          });
-          sec.appendChild(ul);
-          c.appendChild(sec);
-        });
-      })
-      .catch(e => console.error('Sections error:', e));
+    // Timeline sections from loaded JSON
+    if (Array.isArray(cfg.sections)) {
+      cfg.sections.forEach(s => appendSection(c, s));
+    }
   }
 
-  renderColumn('left-container',  layout.left);
-  renderColumn('right-container', layout.right);
+  // ─── 7) Helper to append a section block ─────────────────────────────────
+  function appendSection(container, s) {
+    const sec = document.createElement('div'); sec.className = 'section';
+    const t   = document.createElement('div'); t.className = 'title';
+    t.textContent = `${s.sectionID}. ${s.title}`;
+    sec.appendChild(t);
+
+    const ul = document.createElement('ul');
+    (s.items || []).forEach(item => {
+      const li = document.createElement('li');
+      li.textContent = item;
+      ul.appendChild(li);
+    });
+    sec.appendChild(ul);
+    container.appendChild(sec);
+  }
 </script>
 
 </body>
